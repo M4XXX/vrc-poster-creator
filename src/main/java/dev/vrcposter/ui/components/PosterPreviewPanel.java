@@ -22,6 +22,8 @@ public class PosterPreviewPanel extends StackPane {
 
     public PosterPreviewPanel() {
         setStyle("-fx-background-color: #000000;");
+        setMinWidth(0);
+        setMinHeight(0);
         imageView.setPreserveRatio(true);
         imageView.fitWidthProperty().bind(widthProperty());
         imageView.fitHeightProperty().bind(heightProperty());

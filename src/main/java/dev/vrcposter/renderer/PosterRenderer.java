@@ -10,10 +10,20 @@ import java.util.Optional;
 public final class PosterRenderer {
 
     private static final Color BACKGROUND_FALLBACK = new Color(0x1a, 0x1a, 0x2e);
-    private static final Color TEXT_WHITE = Color.WHITE;
-    private static final String FONT_NAME = "Ethnocentric";
+
+    private static Font baseFont;
 
     private PosterRenderer() {}
+
+    /** Called once at startup with the font loaded from the classpath. */
+    public static void registerFont(Font font) {
+        baseFont = font;
+    }
+
+    private static Font posterFont(int style, float size) {
+        if (baseFont != null) return baseFont.deriveFont(style, size);
+        return new Font(Font.SANS_SERIF, style, (int) size);
+    }
 
     /** Renders at the canonical 1080×1920 export resolution. */
     public static BufferedImage render(PosterSnapshot snapshot) {
@@ -71,7 +81,7 @@ public final class PosterRenderer {
 
     private static void drawTitleZone(Graphics2D g, PosterSnapshot snapshot, int width, int height,
                                       int padding, int topZoneEnd) {
-        g.setColor(TEXT_WHITE);
+        g.setColor(snapshot.fontColor);
 
         int titleSize    = (int)(width * 0.07);
         int subtitleSize = (int)(width * 0.04);
@@ -83,7 +93,7 @@ public final class PosterRenderer {
         // Title
         String title = snapshot.title != null ? snapshot.title : "";
         if (!title.isBlank()) {
-            Font f = new Font(FONT_NAME, Font.BOLD, titleSize);
+            Font f = posterFont(Font.BOLD, titleSize);
             g.setFont(f);
             FontMetrics fm = g.getFontMetrics();
             y += fm.getAscent();
@@ -94,7 +104,7 @@ public final class PosterRenderer {
         // Date (rendered between title and subtitle)
         String date = snapshot.date != null ? snapshot.date : "";
         if (!date.isBlank()) {
-            Font f = new Font(FONT_NAME, Font.PLAIN, subtitleSize);
+            Font f = posterFont(Font.PLAIN, subtitleSize);
             g.setFont(f);
             FontMetrics fm = g.getFontMetrics();
             y += fm.getAscent();
@@ -105,7 +115,7 @@ public final class PosterRenderer {
         // Subtitle
         String subtitle = snapshot.subtitle != null ? snapshot.subtitle : "";
         if (!subtitle.isBlank()) {
-            Font f = new Font(FONT_NAME, Font.BOLD, subtitleSize);
+            Font f = posterFont(Font.BOLD, subtitleSize);
             g.setFont(f);
             FontMetrics fm = g.getFontMetrics();
             y += fm.getAscent();
@@ -123,33 +133,49 @@ public final class PosterRenderer {
         // Center the lineup vertically in the center zone
         int startY = topZoneEnd + (centerZoneHeight - rowHeight * timeslots.size()) / 2;
 
-        int fontSize = Math.max((int)(rowHeight * 0.35 / 2), 10);
-        Font rowFont = new Font(FONT_NAME, Font.BOLD, fontSize);
+        // 0.22 keeps the two-line block in the top ~70% of each row; the remaining space is the inter-row gap
+        int infoFontSize = Math.max((int)(rowHeight * 0.22), 7);
+        int nameFontSize = infoFontSize * 2;
+        Font nameFont = posterFont(Font.BOLD, nameFontSize);
+        Font infoFont = posterFont(Font.PLAIN, infoFontSize);
 
         for (int i = 0; i < timeslots.size(); i++) {
-            drawTimeslotRow(g, timeslots.get(i), startY + i * rowHeight, rowHeight, width, padding, rowFont);
+            drawTimeslotRow(g, timeslots.get(i), startY + i * rowHeight, rowHeight, width, padding, nameFont, infoFont, snapshot.fontColor);
         }
     }
 
     private static void drawTimeslotRow(Graphics2D g, PosterSnapshot.TimeslotSnapshot slot,
-                                        int rowY, int rowHeight, int width, int padding, Font font) {
-        g.setColor(TEXT_WHITE);
-        g.setFont(font);
-        FontMetrics fm = g.getFontMetrics();
-        int lineHeight = rowHeight / 2;
+                                        int rowY, int rowHeight, int width, int padding,
+                                        Font nameFont, Font infoFont, Color fontColor) {
+        g.setColor(fontColor);
 
-        // Line 1: artist name — left-aligned
+        g.setFont(nameFont);
+        FontMetrics fmName = g.getFontMetrics();
+        g.setFont(infoFont);
+        FontMetrics fmInfo = g.getFontMetrics();
+
+        // Minimal gap — name and info read as a single grouped entry
+        int lineGap = 2;
+        // Tiny top pad — text block sits near the top; bottom space is the inter-row gap
+        int topPad = 4;
+
+        int nameY = rowY + topPad + fmName.getAscent();
+        int infoY = nameY + fmName.getDescent() + lineGap + fmInfo.getAscent();
+
+        // Line 1: artist name — bold, 2× font size
         String artistName = slot.assignedDjArtistName() != null ? slot.assignedDjArtistName() : "";
         if (!artistName.isBlank()) {
-            g.drawString(artistName, padding, rowY + fm.getAscent());
+            g.setFont(nameFont);
+            g.drawString(artistName, padding, nameY);
         }
 
-        // Line 2: "time – genre" — left-aligned
+        // Line 2: "time – genre" — half size, tight below name
         String time = slot.startTime() != null ? slot.startTime() : "";
         String genre = slot.genre() != null ? slot.genre() : "";
         String line2 = genre.isBlank() ? time : (time + " – " + genre);
         if (!line2.isBlank()) {
-            g.drawString(line2, padding, rowY + lineHeight + fm.getAscent());
+            g.setFont(infoFont);
+            g.drawString(line2, padding, infoY);
         }
 
         // DJ logo — right-aligned, vertically centered across full row height
@@ -167,28 +193,36 @@ public final class PosterRenderer {
     private static void drawBottomZone(Graphics2D g, PosterSnapshot snapshot, int width, int height,
                                        int padding) {
         int logoSize = (int)(width * 0.18);
-        int footerTextSize = (int)(width * 0.025);
+        int footerTextSize = (int)(width * 0.034);
 
-        // Fixed text (FR16) — centered, roughly 91% down the canvas
-        g.setColor(TEXT_WHITE);
-        Font footerFont = new Font(Font.SANS_SERIF, Font.PLAIN, footerTextSize);
+        // Measure hint text first so images can be shifted up to make room
+        Font footerFont = posterFont(Font.PLAIN, footerTextSize);
         g.setFont(footerFont);
         FontMetrics fm = g.getFontMetrics();
-        String fixedText = "Please use an optimized Avatar";
-        int fixedX = (width - fm.stringWidth(fixedText)) / 2;
-        int fixedY = (int)(height * 0.91) + fm.getAscent();
-        g.drawString(fixedText, fixedX, fixedY);
+        int hintBlockHeight = snapshot.showAvatarHint ? fm.getHeight() + padding / 2 : 0;
 
-        // Club logo — bottom-left
+        // Club logo — bottom-left, above hint text when shown
         if (snapshot.clubLogoPath != null) {
             Optional<BufferedImage> opt = ImageIngester.load(snapshot.clubLogoPath, logoSize, logoSize);
-            opt.ifPresent(img -> g.drawImage(img, padding, height - img.getHeight() - padding, null));
+            opt.ifPresent(img -> g.drawImage(img, padding,
+                height - img.getHeight() - padding - hintBlockHeight, null));
         }
 
-        // QR code — bottom-right
+        // QR code — bottom-right, above hint text when shown
         if (snapshot.qrCodePath != null) {
             Optional<BufferedImage> opt = ImageIngester.load(snapshot.qrCodePath, logoSize, logoSize);
-            opt.ifPresent(img -> g.drawImage(img, width - img.getWidth() - padding, height - img.getHeight() - padding, null));
+            opt.ifPresent(img -> g.drawImage(img, width - img.getWidth() - padding,
+                height - img.getHeight() - padding - hintBlockHeight, null));
+        }
+
+        // Avatar hint text — centered, at the very bottom below the images
+        if (snapshot.showAvatarHint) {
+            g.setColor(snapshot.fontColor);
+            g.setFont(footerFont);
+            String fixedText = "Please use an optimized Avatar";
+            int fixedX = (width - fm.stringWidth(fixedText)) / 2;
+            int fixedY = height - fm.getDescent() - padding / 2;
+            g.drawString(fixedText, fixedX, fixedY);
         }
     }
 

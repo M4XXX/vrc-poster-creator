@@ -19,7 +19,9 @@ import javafx.scene.control.TextField;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.DataFormat;
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.TransferMode;
+import javafx.stage.Stage;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
@@ -57,11 +59,15 @@ public class TimeslotRow extends HBox {
 
         dragHandle = new Label("⠃");
         dragHandle.setStyle("-fx-cursor: open-hand; -fx-font-size: 14px;");
+        dragHandle.setMinWidth(20);
+        dragHandle.setPrefWidth(20);
+        dragHandle.setMaxWidth(20);
 
         timeField = new TextField(entry.getStartTime());
-        timeField.setPrefWidth(55);
-        timeField.setMinWidth(55);
-        timeField.setMaxWidth(55);
+        timeField.setPrefWidth(70);
+        timeField.setMinWidth(70);
+        timeField.setMaxWidth(70);
+        timeField.textProperty().addListener((obs, o, n) -> controller.setTimeslotStartTime(entry, n.trim()));
         timeField.setOnAction(e -> controller.setTimeslotStartTime(entry, timeField.getText().trim()));
         timeField.focusedProperty().addListener((obs, wasFocused, isFocused) -> {
             if (!isFocused) {
@@ -82,6 +88,7 @@ public class TimeslotRow extends HBox {
         roster.addListener((javafx.collections.ListChangeListener<DJRecord>) c ->
             Platform.runLater(() -> { updatePrompt.run(); syncComboBoxValue(); }));
         HBox.setHgrow(djComboBox, Priority.ALWAYS);
+        djComboBox.setPrefWidth(100);
         djComboBox.setMaxWidth(Double.MAX_VALUE);
         djComboBox.setButtonCell(new DJCell());
         djComboBox.setCellFactory(lv -> new DJCell());
@@ -98,20 +105,41 @@ public class TimeslotRow extends HBox {
         logoView.setFitWidth(18);
         logoView.setFitHeight(18);
         logoView.setPreserveRatio(true);
+        logoView.setStyle("-fx-cursor: hand;");
+        logoView.setOnMouseClicked(e -> {
+            if (e.getButton() != MouseButton.PRIMARY) return;
+            String djId = entry.getAssignedDjId();
+            if (djId == null || djId.isBlank()) return;
+            roster.stream()
+                .filter(dj -> djId.equals(dj.getId()))
+                .findFirst()
+                .ifPresent(dj -> new DJFormDialog(
+                    (Stage) getScene().getWindow(), controller, dj).showAndWait());
+        });
 
         clearBtn = new Button("×");
         clearBtn.getStyleClass().add("timeslot-clear-btn");
         clearBtn.getStyleClass().add("ghost");
+        clearBtn.setMinWidth(28);
+        clearBtn.setPrefWidth(28);
+        clearBtn.setMaxWidth(28);
         clearBtn.setOnAction(e -> controller.clearTimeslotAssignment(entry));
 
         removeBtn = new Button("−");
         removeBtn.getStyleClass().add("timeslot-remove-btn");
         removeBtn.getStyleClass().add("ghost");
+        removeBtn.setMinWidth(28);
+        removeBtn.setPrefWidth(28);
+        removeBtn.setMaxWidth(28);
         removeBtn.setOnAction(e -> controller.removeTimeslot(entry));
 
         genreField = new TextField(entry.getGenre());
         genreField.setPromptText("Genre…");
-        genreField.setPrefWidth(80);
+        genreField.setPrefWidth(100);
+        genreField.setMinWidth(60);
+        genreField.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(genreField, Priority.ALWAYS);
+        genreField.textProperty().addListener((obs, o, n) -> controller.setTimeslotGenre(entry, n));
         genreField.setOnAction(e -> controller.setTimeslotGenre(entry, genreField.getText()));
         genreField.focusedProperty().addListener((obs, wasFocused, isFocused) -> {
             if (!isFocused) controller.setTimeslotGenre(entry, genreField.getText());

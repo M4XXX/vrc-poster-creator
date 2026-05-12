@@ -1,6 +1,7 @@
 package dev.vrcposter;
 
 import atlantafx.base.theme.PrimerDark;
+import dev.vrcposter.renderer.PosterRenderer;
 import dev.vrcposter.repository.DatabaseManager;
 import dev.vrcposter.repository.migration.Migration001_InitialSchema;
 import dev.vrcposter.repository.migration.MigrationRunner;
@@ -50,6 +51,12 @@ public class App extends Application {
         stage.setMinHeight(700);
         stage.setTitle("VRChat DJ Event Poster Creator");
         stage.setScene(scene);
+
+        var iconUrl = App.class.getResource("/dev/vrcposter/images/app-icon.png");
+        if (iconUrl != null) {
+            stage.getIcons().add(new javafx.scene.image.Image(iconUrl.toExternalForm()));
+        }
+
         stage.show();
 
         log.info("Application started");
@@ -70,6 +77,7 @@ public class App extends Application {
             }
             java.awt.Font font = java.awt.Font.createFont(java.awt.Font.TRUETYPE_FONT, stream);
             java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment().registerFont(font);
+            PosterRenderer.registerFont(font);
             log.info("Ethnocentric font registered: {}", font.getName());
         } catch (Exception e) {
             log.warn("Could not load Ethnocentric font — fallback font will be used", e);

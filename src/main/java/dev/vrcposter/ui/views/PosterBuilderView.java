@@ -4,6 +4,7 @@ import dev.vrcposter.App;
 import dev.vrcposter.ApplicationController;
 import dev.vrcposter.model.TimeslotEntry;
 import dev.vrcposter.ui.components.AssetThumbnail;
+import dev.vrcposter.ui.components.DJFormDialog;
 import dev.vrcposter.ui.components.ExportSuccessBar;
 import dev.vrcposter.ui.components.PosterPreviewPanel;
 import dev.vrcposter.ui.components.StatusBar;
@@ -14,6 +15,8 @@ import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.ColorPicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
@@ -128,17 +131,17 @@ public class PosterBuilderView extends BorderPane {
             exportPosterJpeg, exportPosterPng, new SeparatorMenuItem(),
             exportRoster, importRoster, new SeparatorMenuItem(), quit);
 
-        // ── DJ Manager ────────────────────────────────────────────────────
-        var openDJManager = new MenuItem("Open DJ Manager");
-        openDJManager.setOnAction(e -> openDJManager());
-
+        // ── DJ Manager — acts as a direct-action button in the menu bar ──
+        // A Menu with no items never fires onShowing; the dummy item ensures
+        // JavaFX treats it as a real menu and triggers the event on click.
         var djManagerMenu = new Menu("DJ Manager");
-        djManagerMenu.getItems().add(openDJManager);
+        djManagerMenu.getItems().add(new MenuItem());
+        djManagerMenu.setOnShowing(e -> Platform.runLater(() -> {
+            djManagerMenu.hide();
+            openDJManager();
+        }));
 
-        // ── Help ──────────────────────────────────────────────────────────
-        var helpMenu = new Menu("Help");
-
-        return new MenuBar(fileMenu, djManagerMenu, helpMenu);
+        return new MenuBar(fileMenu, djManagerMenu);
     }
 
     private void openDJManager() {
@@ -170,6 +173,7 @@ public class PosterBuilderView extends BorderPane {
         HBox.setHgrow(rightPanel, Priority.ALWAYS);
 
         var layout = new HBox(centerPanel, rightPanel);
+        layout.setMinHeight(0);
         // Bind each panel to exactly 50% of the HBox width so preview and
         // the event/assets/timeslots panel share space equally.
         centerPanel.prefWidthProperty().bind(layout.widthProperty().multiply(0.5));
@@ -213,8 +217,11 @@ public class PosterBuilderView extends BorderPane {
     private StackPane buildCenterPanel() {
         var panel = new StackPane();
         panel.getStyleClass().add("panel-preview");
-        posterPreviewPanel.prefWidthProperty().bind(panel.widthProperty());
-        posterPreviewPanel.prefHeightProperty().bind(panel.heightProperty());
+        panel.setMinHeight(0);
+        panel.setMinWidth(0);
+        // StackPane fills its child automatically — no pref binding needed,
+        // and binding prefHeight to height creates a circular dependency that
+        // prevents the panel from shrinking when the window gets smaller.
         panel.getChildren().add(posterPreviewPanel);
         return panel;
     }
@@ -242,6 +249,13 @@ public class PosterBuilderView extends BorderPane {
         titleField.textProperty().addListener((obs, o, n) -> controller.setPosterTitle(n));
         subtitleField.textProperty().addListener((obs, o, n) -> controller.setPosterSubtitle(n));
         dateField.textProperty().addListener((obs, o, n) -> controller.setPosterDate(n));
+
+        var fontColorPicker = new ColorPicker(controller.getPosterModel().getFontColor());
+        fontColorPicker.setMaxWidth(Double.MAX_VALUE);
+        fontColorPicker.setOnAction(e -> controller.getPosterModel().setFontColor(fontColorPicker.getValue()));
+
+        var fontColorRow = new HBox(8, new Label("Font color"), fontColorPicker);
+        fontColorRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
 
         // ── Assets section ─────────────────────────────────────────────
         var assetsHeader = new Label("ASSETS");
@@ -302,6 +316,14 @@ public class PosterBuilderView extends BorderPane {
         addSlotBtn.getStyleClass().addAll("button", "secondary");
         addSlotBtn.setMaxWidth(Double.MAX_VALUE);
         addSlotBtn.setOnAction(e -> controller.addTimeslot());
+
+        var addDjBtn = new Button("+ Add new DJ");
+        addDjBtn.getStyleClass().addAll("button", "secondary");
+        addDjBtn.setOnAction(e -> new DJFormDialog(stage, controller, null).showAndWait());
+
+        var addBtnRow = new HBox(6, addSlotBtn, addDjBtn);
+        addDjBtn.prefWidthProperty().bind(addBtnRow.widthProperty().subtract(6).divide(3));
+        HBox.setHgrow(addSlotBtn, Priority.ALWAYS);
 
         var timeslots = controller.getPosterModel().getTimeslots();
         var roster = controller.getDjRoster().getObservableList();
@@ -364,33 +386,44 @@ public class PosterBuilderView extends BorderPane {
         statusBar.updateSlotCount(timeslots.size());
 
         // ── Assemble content ───────────────────────────────────────────
-        var bgLabel   = new Label("Background");
-        var logoLabel = new Label("Club Logo");
-        var qrLabel   = new Label("QR Code");
+        var avatarHintCheck = new CheckBox("Show Avatar optimization hint");
+        avatarHintCheck.setSelected(controller.getPosterModel().isShowAvatarHint());
+        avatarHintCheck.selectedProperty().addListener((obs, o, n) ->
+            controller.getPosterModel().setShowAvatarHint(n));
+
+        var bgCol   = new VBox(4, new Label("Background"), bgThumb);
+        var logoCol = new VBox(4, new Label("Club Logo"),  logoThumb);
+        var qrCol   = new VBox(4, new Label("QR Code"),   qrThumb);
+        for (var col : new VBox[]{bgCol, logoCol, qrCol}) {
+            HBox.setHgrow(col, Priority.ALWAYS);
+            col.setMaxWidth(Double.MAX_VALUE);
+        }
+        var assetsRow = new HBox(8, bgCol, logoCol, qrCol);
 
         var content = new VBox(8,
-            eventInfoHeader, titleField, subtitleField, dateField,
+            eventInfoHeader, titleField, dateField, subtitleField, fontColorRow,
             new Separator(),
             timeslotsHeader,
             noRosterBanner,
             slotsContainer,
-            addSlotBtn,
+            addBtnRow,
             new Separator(),
             assetsHeader,
-            bgLabel,   bgThumb,
-            logoLabel, logoThumb,
-            qrLabel,   qrThumb
+            avatarHintCheck,
+            assetsRow
         );
         content.setPadding(new Insets(12));
 
         var scroll = new ScrollPane(content);
         scroll.setFitToWidth(true);
         scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scroll.setMinHeight(0);
         VBox.setVgrow(scroll, Priority.ALWAYS);
 
         var panel = new VBox(scroll);
         panel.getStyleClass().add("panel-side");
         panel.setMaxWidth(Double.MAX_VALUE);
+        panel.setMinHeight(0);
         return panel;
     }
 }

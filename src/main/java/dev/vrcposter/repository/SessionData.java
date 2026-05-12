@@ -9,6 +9,7 @@ public class SessionData {
     public String backgroundPath;
     public String clubLogoPath;
     public String qrCodePath;
+    public String fontColor;
     public List<TimeslotData> timeslots;
 
     public static class TimeslotData {

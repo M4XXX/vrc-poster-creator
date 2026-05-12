@@ -24,6 +24,7 @@ import dev.vrcposter.util.ImageIngester;
 import javafx.application.Platform;
 import javafx.collections.ListChangeListener;
 import javafx.concurrent.Task;
+import javafx.scene.paint.Color;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -228,6 +229,8 @@ public class ApplicationController {
         posterModel.backgroundPathProperty().addListener((obs, o, n) -> trigger.run());
         posterModel.clubLogoPathProperty().addListener((obs, o, n) -> trigger.run());
         posterModel.qrCodePathProperty().addListener((obs, o, n) -> trigger.run());
+        posterModel.showAvatarHintProperty().addListener((obs, o, n) -> trigger.run());
+        posterModel.fontColorProperty().addListener((obs, o, n) -> trigger.run());
         posterModel.getTimeslots().addListener(
             (ListChangeListener<TimeslotEntry>) c -> trigger.run());
     }
@@ -265,6 +268,10 @@ public class ApplicationController {
             slots.add(td);
         }
 
+        Color fc = posterModel.getFontColor();
+        String fontColorHex = String.format("#%02X%02X%02X",
+            (int)(fc.getRed() * 255), (int)(fc.getGreen() * 255), (int)(fc.getBlue() * 255));
+
         SessionData data = new SessionData();
         data.title = title;
         data.subtitle = subtitle;
@@ -272,6 +279,7 @@ public class ApplicationController {
         data.backgroundPath = bgPath;
         data.clubLogoPath = clubPath;
         data.qrCodePath = qrPath;
+        data.fontColor = fontColorHex;
         data.timeslots = slots;
 
         Task<Void> task = new Task<>() {
@@ -312,6 +320,10 @@ public class ApplicationController {
         posterModel.setTitle(data.title != null ? data.title : "");
         posterModel.setSubtitle(data.subtitle != null ? data.subtitle : "");
         posterModel.setDate(data.date != null ? data.date : "");
+        if (data.fontColor != null) {
+            try { posterModel.setFontColor(Color.web(data.fontColor)); }
+            catch (IllegalArgumentException ignored) { /* corrupt value — keep default white */ }
+        }
 
         if (data.backgroundPath != null) {
             Path p = Path.of(data.backgroundPath);
@@ -470,9 +482,33 @@ public class ApplicationController {
                 return djRepository.findAll();
             }
         };
-        task.setOnSucceeded(e -> Platform.runLater(() -> djRoster.setAll(task.getValue())));
+        task.setOnSucceeded(e -> Platform.runLater(() -> {
+            djRoster.setAll(task.getValue());
+            syncTimeslotsWithRoster();
+        }));
         task.setOnFailed(e -> log.error("Failed to load DJ roster", task.getException()));
         executor.submit(task);
+    }
+
+    /**
+     * Reconciles every assigned timeslot entry against the current roster.
+     * Must be called on the JAT after the roster list has been refreshed.
+     * - DJ updated: re-applies current name and logo path to the entry.
+     * - DJ deleted: clears the assignment so the preview shows no stale data.
+     */
+    private void syncTimeslotsWithRoster() {
+        var roster = djRoster.getObservableList();
+        for (TimeslotEntry entry : posterModel.getTimeslots()) {
+            String djId = entry.getAssignedDjId();
+            if (djId == null || djId.isBlank()) continue;
+            roster.stream()
+                .filter(dj -> djId.equals(dj.getId()))
+                .findFirst()
+                .ifPresentOrElse(
+                    dj -> assignDjToTimeslot(entry, dj),
+                    () -> entry.clearAssignment()
+                );
+        }
     }
 
     public void saveDj(DJRecord record, Path logoSourcePath, Runnable onSuccess, Runnable onFailure) {
