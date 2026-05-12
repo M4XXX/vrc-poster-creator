@@ -1,0 +1,29 @@
+# Maven build output
+target/
+
+# App runtime artifact (created when APPDATA env var is undefined during dev run)
+env.APPDATA_IS_UNDEFINED
+
+# Compiled class files
+*.class
+
+# Log files
+*.log
+
+# IntelliJ IDEA
+.idea/
+*.iml
+
+# VS Code
+.vscode/
+
+# Eclipse
+.settings/
+.classpath
+.project
+
+# macOS
+.DS_Store
+
+# Windows Explorer
+Thumbs.db

@@ -1,0 +1,290 @@
+/* =============================================
+   VRC Poster Creator — Custom Theme
+   Supplements AtlantaFX Primer Dark
+   ============================================= */
+
+/* ── 15 Color Tokens (JavaFX looked-up colors) ── */
+.root {
+    /* Backgrounds */
+    color-bg:               #0d0d0d;
+    color-surface:          #1a1a1a;
+    color-surface-raised:   #222222;
+    color-preview-bg:       #000000;
+
+    /* Interactive */
+    color-accent:           #FFD600;
+    color-accent-hover:     #FFE033;
+
+    /* Destructive */
+    color-destructive:      #FF1744;
+    color-destructive-hover: #FF4569;
+
+    /* Text */
+    color-text-primary:     #F5F5F5;
+    color-text-secondary:   #888888;
+
+    /* Structure */
+    color-border:           #2a2a2a;
+
+    /* Timeslot states */
+    color-slot-empty:        #161616;
+    color-slot-filled:       #1f1a00;
+    color-slot-filled-border: #FFD600;
+
+    /* Status */
+    color-success:          #4CAF50;
+
+    /* Override AtlantaFX base with pure-black aesthetic */
+    -fx-base:       #0d0d0d;
+    -fx-background: #0d0d0d;
+}
+
+/* ── Button Hierarchy ── */
+
+/* Primary: yellow fill + black text */
+.button.primary {
+    -fx-background-color: color-accent;
+    -fx-text-fill: #000000;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+}
+.button.primary:hover {
+    -fx-background-color: color-accent-hover;
+}
+.button.primary:disabled {
+    -fx-opacity: 0.4;
+}
+
+/* Secondary: dark fill + yellow border + yellow text */
+.button.secondary {
+    -fx-background-color: color-surface;
+    -fx-text-fill: color-accent;
+    -fx-border-color: color-accent;
+    -fx-border-width: 1px;
+    -fx-border-radius: 3px;
+    -fx-background-radius: 3px;
+    -fx-cursor: hand;
+}
+.button.secondary:hover {
+    -fx-background-color: color-surface-raised;
+}
+.button.secondary:disabled {
+    -fx-opacity: 0.4;
+}
+
+/* Danger: dark fill + red border; hover → red fill */
+.button.danger {
+    -fx-background-color: color-surface;
+    -fx-text-fill: color-destructive;
+    -fx-border-color: color-destructive;
+    -fx-border-width: 1px;
+    -fx-border-radius: 3px;
+    -fx-background-radius: 3px;
+    -fx-cursor: hand;
+}
+.button.danger:hover {
+    -fx-background-color: color-destructive;
+    -fx-text-fill: color-text-primary;
+}
+.button.danger:disabled {
+    -fx-opacity: 0.4;
+}
+
+/* Ghost: no border, secondary text */
+.button.ghost {
+    -fx-background-color: transparent;
+    -fx-text-fill: color-text-secondary;
+    -fx-border-color: transparent;
+    -fx-cursor: hand;
+}
+.button.ghost:hover {
+    -fx-text-fill: color-text-primary;
+    -fx-background-color: color-surface-raised;
+}
+.button.ghost:disabled {
+    -fx-opacity: 0.4;
+}
+
+/* ── Focus Rings ── */
+.button:focused,
+.combo-box:focused,
+.text-field:focused,
+.text-area:focused,
+.list-view:focused,
+.check-box:focused,
+.radio-button:focused,
+.table-view:focused,
+.hyperlink:focused {
+    -fx-border-color: color-accent;
+    -fx-border-width: 2px;
+    -fx-border-radius: 3px;
+}
+
+/* ── Menu Bar ── */
+.menu-bar {
+    -fx-background-color: color-surface;
+    -fx-border-color: color-border;
+    -fx-border-width: 0 0 1px 0;
+}
+.menu-bar .menu:hover,
+.menu-bar .menu:focused,
+.menu-bar .menu:showing {
+    -fx-background-color: color-surface-raised;
+}
+.context-menu {
+    -fx-background-color: color-surface;
+    -fx-border-color: color-border;
+    -fx-border-width: 1px;
+}
+.menu-item:focused {
+    -fx-background-color: color-surface-raised;
+}
+
+/* ── Status Bar ── */
+.status-bar {
+    -fx-background-color: color-surface;
+    -fx-border-color: color-border;
+    -fx-border-width: 1px 0 0 0;
+    -fx-padding: 4px 12px;
+}
+
+/* ── Panel Backgrounds ── */
+.panel-side {
+    -fx-background-color: color-surface-raised;
+}
+.panel-preview {
+    -fx-background-color: color-preview-bg;
+}
+
+/* ── Roster List Cell ─────────────────────────────────────────── */
+.list-view .roster-cell {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.list-view .roster-cell:hover {
+    -fx-background-color: #222222;
+}
+
+/* 2-layer background: #FFD600 full-width, then #1f1a00 inset 2px left = yellow left border */
+.list-view .roster-cell:selected {
+    -fx-background-color: #FFD600, #1f1a00;
+    -fx-background-insets: 0, 0 0 0 2;
+    -fx-background-radius: 0;
+}
+
+.roster-placeholder {
+    -fx-background-color: #333333;
+    -fx-background-radius: 4;
+}
+
+.roster-placeholder-text {
+    -fx-text-fill: #888888;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+}
+
+.roster-name {
+    -fx-text-fill: #F5F5F5;
+    -fx-font-size: 13px;
+}
+
+.dj-manager-toolbar {
+    -fx-background-color: #1a1a1a;
+    -fx-border-color: #2a2a2a;
+    -fx-border-width: 0 0 1 0;
+    -fx-spacing: 8;
+    -fx-alignment: CENTER_LEFT;
+}
+
+.dj-manager-empty {
+    -fx-text-fill: #888888;
+    -fx-font-size: 14px;
+}
+
+/* ── DJ Form Dialog ───────────────────────────────────────────── */
+.field-error {
+    -fx-border-color: #FF1744;
+    -fx-border-width: 1px;
+    -fx-border-radius: 3px;
+}
+
+.form-error-label {
+    -fx-text-fill: #FF1744;
+    -fx-font-size: 11px;
+}
+
+.logo-preview {
+    -fx-background-color: #333333;
+    -fx-background-radius: 4;
+}
+
+/* ── Export Success Bar ───────────────────────────────────────────── */
+.export-success-bar {
+    -fx-padding: 4 12 4 12;
+    -fx-background-color: rgba(76, 175, 80, 0.12);
+    -fx-border-color: rgba(76, 175, 80, 0.4);
+    -fx-border-width: 0 0 1 0;
+    -fx-alignment: CENTER_LEFT;
+    -fx-spacing: 8;
+}
+.success-dot {
+    -fx-text-fill: color-success;
+}
+
+/* ── Timeslot Rows ───────────────────────────────────────────────── */
+.timeslot-row-empty {
+    -fx-background-color: color-slot-empty;
+    -fx-border-color: transparent;
+    -fx-border-width: 0 0 0 3px;
+    -fx-border-insets: 0 0 0 0;
+}
+
+.timeslot-row-filled {
+    -fx-background-color: color-slot-filled;
+    -fx-border-color: color-slot-filled-border;
+    -fx-border-width: 0 0 0 3px;
+    -fx-border-insets: 0 0 0 0;
+}
+
+.timeslot-clear-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: color-text-secondary;
+    -fx-cursor: hand;
+    -fx-padding: 2 6 2 6;
+}
+.button.timeslot-clear-btn:hover {
+    -fx-text-fill: color-destructive;
+}
+
+.timeslot-remove-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: color-text-secondary;
+    -fx-cursor: hand;
+    -fx-padding: 2 6 2 6;
+}
+.button.timeslot-remove-btn:hover {
+    -fx-text-fill: color-destructive;
+}
+
+/* ── Poster Preview Empty State ─────────────────────────────────── */
+.preview-empty-label {
+    -fx-text-fill: color-text-secondary;
+    -fx-font-size: 14px;
+    -fx-alignment: CENTER;
+    -fx-wrap-text: true;
+}
+
+/* ── No Roster Banner ────────────────────────────────────────── */
+.no-roster-banner .label {
+    -fx-text-fill: color-text-secondary;
+    -fx-font-size: 12px;
+}
+
+/* ── Right Panel Section Headers ─────────────────────────────────── */
+.section-header {
+    -fx-font-size: 11px;
+    -fx-font-weight: 600;
+    -fx-text-fill: color-text-secondary;
+    -fx-padding: 4 0 2 0;
+}
