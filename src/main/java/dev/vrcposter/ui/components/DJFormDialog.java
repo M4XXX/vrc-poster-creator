@@ -5,6 +5,7 @@ import dev.vrcposter.ApplicationController;
 import dev.vrcposter.model.DJRecord;
 import dev.vrcposter.util.AppPaths;
 import dev.vrcposter.util.ImageIngester;
+import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.geometry.HPos;
@@ -240,7 +241,9 @@ public class DJFormDialog extends Stage {
                 nb(streamLink1Field.getText()),
                 nb(streamLink2Field.getText())
             );
-            controller.saveDj(record, selectedLogoPath, this::close, () -> saveBtn.setDisable(false));
+            controller.saveDj(record, selectedLogoPath,
+                () -> Platform.runLater(this::close),
+                () -> Platform.runLater(() -> saveBtn.setDisable(false)));
         } else {
             DJRecord updated = new DJRecord(
                 existingRecord.getId(),
@@ -254,7 +257,9 @@ public class DJFormDialog extends Stage {
                 existingRecord.getCreatedAt(),
                 System.currentTimeMillis()
             );
-            controller.updateDj(updated, selectedLogoPath, existingRecord.getLogoFilename(), this::close, () -> saveBtn.setDisable(false));
+            controller.updateDj(updated, selectedLogoPath, existingRecord.getLogoFilename(),
+                () -> Platform.runLater(this::close),
+                () -> Platform.runLater(() -> saveBtn.setDisable(false)));
         }
     }
 

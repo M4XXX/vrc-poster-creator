@@ -474,6 +474,15 @@ public class ApplicationController {
         executor.submit(task);
     }
 
+    /** Fetches all DJ records synchronously on the calling thread and updates the roster. */
+    private void loadRosterSync() {
+        try {
+            djRoster.setAll(djRepository.findAll());
+        } catch (RepositoryException e) {
+            log.error("Failed to sync roster", e);
+        }
+    }
+
     /** Loads all DJ records from the database on a background thread and populates the DJRoster. */
     public void loadRoster() {
         Task<List<DJRecord>> task = new Task<>() {
@@ -512,73 +521,54 @@ public class ApplicationController {
     }
 
     public void saveDj(DJRecord record, Path logoSourcePath, Runnable onSuccess, Runnable onFailure) {
-        Task<Void> task = new Task<>() {
-            @Override
-            protected Void call() throws Exception {
+        executor.submit(() -> {
+            try {
                 DJRecord toSave = logoSourcePath != null ? writeLogo(record, logoSourcePath) : record;
                 djRepository.save(toSave);
-                return null;
+                if (onSuccess != null) onSuccess.run();
+                Platform.runLater(this::loadRoster);
+            } catch (Exception e) {
+                log.error("Failed to save DJ record", e);
+                if (onFailure != null) onFailure.run();
             }
-        };
-        task.setOnSucceeded(e -> {
-            Platform.runLater(ApplicationController.this::loadRoster);
-            if (onSuccess != null) onSuccess.run();
         });
-        task.setOnFailed(e -> {
-            log.error("Failed to save DJ record", task.getException());
-            if (onFailure != null) onFailure.run();
-        });
-        executor.submit(task);
     }
 
     public void updateDj(DJRecord record, Path logoSourcePath, String oldLogoFilename, Runnable onSuccess, Runnable onFailure) {
-        Task<Void> task = new Task<>() {
-            @Override
-            protected Void call() throws Exception {
+        executor.submit(() -> {
+            try {
                 DJRecord toUpdate = record;
                 if (logoSourcePath != null) {
                     deleteOldLogo(oldLogoFilename);
                     toUpdate = writeLogo(record, logoSourcePath);
                 }
                 djRepository.update(toUpdate);
-                return null;
+                if (onSuccess != null) onSuccess.run();
+                Platform.runLater(this::loadRoster);
+            } catch (Exception e) {
+                log.error("Failed to update DJ record", e);
+                if (onFailure != null) onFailure.run();
             }
-        };
-        task.setOnSucceeded(e -> {
-            Platform.runLater(ApplicationController.this::loadRoster);
-            if (onSuccess != null) onSuccess.run();
         });
-        task.setOnFailed(e -> {
-            log.error("Failed to update DJ record", task.getException());
-            if (onFailure != null) onFailure.run();
-        });
-        executor.submit(task);
     }
 
     public void deleteDj(String djId, String logoFilename, Runnable onSuccess, Runnable onFailure) {
-        Task<Void> task = new Task<>() {
-            @Override
-            protected Void call() throws Exception {
+        executor.submit(() -> {
+            try {
                 djRepository.delete(djId);
                 deleteOldLogo(logoFilename);
-                return null;
+                if (onSuccess != null) onSuccess.run();
+                Platform.runLater(this::loadRoster);
+            } catch (Exception e) {
+                log.error("Failed to delete DJ record", e);
+                if (onFailure != null) onFailure.run();
             }
-        };
-        task.setOnSucceeded(e -> {
-            Platform.runLater(ApplicationController.this::loadRoster);
-            if (onSuccess != null) onSuccess.run();
         });
-        task.setOnFailed(e -> {
-            log.error("Failed to delete DJ record", task.getException());
-            if (onFailure != null) onFailure.run();
-        });
-        executor.submit(task);
     }
 
     public void exportRoster(Path destPath, Runnable onSuccess, Runnable onFailure) {
-        Task<Void> task = new Task<>() {
-            @Override
-            protected Void call() throws Exception {
+        executor.submit(() -> {
+            try {
                 List<DJRecord> records = djRepository.findAll();
                 ObjectMapper mapper = new ObjectMapper();
                 try (var zipOut = new ZipOutputStream(Files.newOutputStream(destPath))) {
@@ -594,125 +584,118 @@ public class ApplicationController {
                         zipOut.closeEntry();
                     }
                 }
-                return null;
+                if (onSuccess != null) onSuccess.run();
+            } catch (Exception e) {
+                log.error("Failed to export roster", e);
+                if (onFailure != null) onFailure.run();
             }
-        };
-        task.setOnSucceeded(e -> {
-            if (onSuccess != null) onSuccess.run();
         });
-        task.setOnFailed(e -> {
-            log.error("Failed to export roster", task.getException());
-            if (onFailure != null) onFailure.run();
-        });
-        executor.submit(task);
     }
 
     public void importRoster(Path sourcePath, Consumer<Integer> onSuccess, Runnable onFailure) {
-        Task<Integer> task = new Task<>() {
-            @Override
-            protected Integer call() throws Exception {
-                ObjectMapper mapper = new ObjectMapper();
-                byte[] rosterJson = null;
-                Path tempImportDir = Files.createTempDirectory("vrc-import-");
-                try {
-                    try (var zipIn = new ZipInputStream(Files.newInputStream(sourcePath))) {
-                        ZipEntry entry;
-                        while ((entry = zipIn.getNextEntry()) != null) {
-                            if ("roster.json".equals(entry.getName())) {
-                                rosterJson = zipIn.readAllBytes();
-                            } else if (entry.getName().startsWith("logos/") && !entry.isDirectory()) {
-                                String rawName = entry.getName().substring("logos/".length());
-                                String filename = Path.of(rawName).getFileName().toString();
-                                Path tmp = tempImportDir.resolve(filename);
-                                Files.copy(zipIn, tmp, StandardCopyOption.REPLACE_EXISTING);
-                            }
-                            zipIn.closeEntry();
-                        }
-                    }
-                    if (rosterJson == null) {
-                        throw new RepositoryException("ZIP missing roster.json", null);
-                    }
+        executor.submit(() -> {
+            try {
+                int count = doImportRoster(sourcePath);
+                loadRosterSync();
+                if (onSuccess != null) onSuccess.accept(count);
+                Platform.runLater(this::loadRoster);
+            } catch (Exception e) {
+                log.error("Failed to import roster", e);
+                if (onFailure != null) onFailure.run();
+            }
+        });
+    }
 
-                    List<DJRecord> parsedRecords = new ArrayList<>();
-                    JsonNode rootNode = mapper.readTree(rosterJson);
-                    if (!(rootNode instanceof ArrayNode)) {
-                        throw new RepositoryException("roster.json must be a JSON array", null);
+    private int doImportRoster(Path sourcePath) throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        byte[] rosterJson = null;
+        Path tempImportDir = Files.createTempDirectory("vrc-import-");
+        try {
+            try (var zipIn = new ZipInputStream(Files.newInputStream(sourcePath))) {
+                ZipEntry entry;
+                while ((entry = zipIn.getNextEntry()) != null) {
+                    if ("roster.json".equals(entry.getName())) {
+                        rosterJson = zipIn.readAllBytes();
+                    } else if (entry.getName().startsWith("logos/") && !entry.isDirectory()) {
+                        String rawName = entry.getName().substring("logos/".length());
+                        String filename = Path.of(rawName).getFileName().toString();
+                        Path tmp = tempImportDir.resolve(filename);
+                        Files.copy(zipIn, tmp, StandardCopyOption.REPLACE_EXISTING);
                     }
-                    ArrayNode array = (ArrayNode) rootNode;
-                    for (JsonNode node : array) {
-                        String id         = node.path("id").asText(null);
-                        String artistName = node.path("artistName").asText(null);
-                        if (id == null || id.isBlank() || artistName == null || artistName.isBlank()) {
-                            throw new RepositoryException(
-                                    "Invalid record in roster.json: missing id or artistName", null);
-                        }
-                        String discordName  = node.path("discordName").asText(null);
-                        String vrcName      = node.path("vrcName").asText(null);
-                        String genres       = node.path("genres").asText(null);
-                        String streamLink1  = node.path("streamLink1").asText(null);
-                        String streamLink2  = node.path("streamLink2").asText(null);
-                        String rawLogoFilename = node.path("logoFilename").asText(null);
-                    String logoFilename = (rawLogoFilename != null && !rawLogoFilename.isBlank())
-                            ? Path.of(rawLogoFilename).getFileName().toString()
-                            : null;
-                        long createdAt      = node.path("createdAt").asLong(System.currentTimeMillis());
-                        long updatedAt      = System.currentTimeMillis();
-                        parsedRecords.add(new DJRecord(id, artistName, discordName, vrcName,
-                                genres, streamLink1, streamLink2, logoFilename, createdAt, updatedAt));
-                    }
-
-                    // Copy logos from temp dir to permanent logosDir BEFORE DB transaction
-                    Files.createDirectories(AppPaths.logosDir());
-                    for (DJRecord r : parsedRecords) {
-                        if (r.getLogoFilename() == null) continue;
-                        Path tmpLogo = tempImportDir.resolve(r.getLogoFilename());
-                        if (Files.exists(tmpLogo)) {
-                            Files.copy(tmpLogo, AppPaths.logosDir().resolve(r.getLogoFilename()),
-                                    StandardCopyOption.REPLACE_EXISTING);
-                        }
-                    }
-
-                    // Atomic upsert via SQL transaction
-                    Connection conn = databaseManager.getConnection();
-                    conn.setAutoCommit(false);
-                    try {
-                        for (DJRecord r : parsedRecords) {
-                            Optional<DJRecord> existing = djRepository.findById(r.getId());
-                            if (existing.isPresent()) {
-                                djRepository.update(r);
-                            } else {
-                                djRepository.save(r);
-                            }
-                        }
-                        conn.commit();
-                    } catch (Exception e) {
-                        try { conn.rollback(); } catch (SQLException rollbackEx) {
-                            log.warn("Rollback failed during import error handling", rollbackEx);
-                        }
-                        throw e;
-                    } finally {
-                        try { conn.setAutoCommit(true); } catch (SQLException ignored) {}
-                    }
-
-                    return parsedRecords.size();
-                } finally {
-                    try (var walk = Files.walk(tempImportDir)) {
-                        walk.sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
-                    } catch (IOException cleanupEx) {
-                        log.warn("Could not clean up temp import directory", cleanupEx);
-                    }
+                    zipIn.closeEntry();
                 }
             }
-        };
-        task.setOnSucceeded(e -> {
-            Platform.runLater(ApplicationController.this::loadRoster);
-            if (onSuccess != null) onSuccess.accept(task.getValue());
-        });
-        task.setOnFailed(e -> {
-            log.error("Failed to import roster", task.getException());
-            if (onFailure != null) onFailure.run();
-        });
-        executor.submit(task);
+            if (rosterJson == null) {
+                throw new RepositoryException("ZIP missing roster.json", null);
+            }
+
+            List<DJRecord> parsedRecords = new ArrayList<>();
+            JsonNode rootNode = mapper.readTree(rosterJson);
+            if (!(rootNode instanceof ArrayNode)) {
+                throw new RepositoryException("roster.json must be a JSON array", null);
+            }
+            ArrayNode array = (ArrayNode) rootNode;
+            for (JsonNode node : array) {
+                String id         = node.path("id").asText(null);
+                String artistName = node.path("artistName").asText(null);
+                if (id == null || id.isBlank() || artistName == null || artistName.isBlank()) {
+                    throw new RepositoryException(
+                            "Invalid record in roster.json: missing id or artistName", null);
+                }
+                String discordName    = node.path("discordName").asText(null);
+                String vrcName        = node.path("vrcName").asText(null);
+                String genres         = node.path("genres").asText(null);
+                String streamLink1    = node.path("streamLink1").asText(null);
+                String streamLink2    = node.path("streamLink2").asText(null);
+                String rawLogoFilename = node.path("logoFilename").asText(null);
+                String logoFilename   = (rawLogoFilename != null && !rawLogoFilename.isBlank())
+                        ? Path.of(rawLogoFilename).getFileName().toString()
+                        : null;
+                long createdAt        = node.path("createdAt").asLong(System.currentTimeMillis());
+                long updatedAt        = System.currentTimeMillis();
+                parsedRecords.add(new DJRecord(id, artistName, discordName, vrcName,
+                        genres, streamLink1, streamLink2, logoFilename, createdAt, updatedAt));
+            }
+
+            Files.createDirectories(AppPaths.logosDir());
+            for (DJRecord r : parsedRecords) {
+                if (r.getLogoFilename() == null) continue;
+                Path tmpLogo = tempImportDir.resolve(r.getLogoFilename());
+                if (Files.exists(tmpLogo)) {
+                    Files.copy(tmpLogo, AppPaths.logosDir().resolve(r.getLogoFilename()),
+                            StandardCopyOption.REPLACE_EXISTING);
+                }
+            }
+
+            Connection conn = databaseManager.getConnection();
+            conn.setAutoCommit(false);
+            try {
+                for (DJRecord r : parsedRecords) {
+                    Optional<DJRecord> existing = djRepository.findById(r.getId());
+                    if (existing.isPresent()) {
+                        djRepository.update(r);
+                    } else {
+                        djRepository.save(r);
+                    }
+                }
+                conn.commit();
+            } catch (Exception e) {
+                try { conn.rollback(); } catch (SQLException rollbackEx) {
+                    log.warn("Rollback failed during import error handling", rollbackEx);
+                }
+                throw e;
+            } finally {
+                try { conn.setAutoCommit(true); } catch (SQLException ignored) {}
+            }
+
+            return parsedRecords.size();
+        } finally {
+            try (var walk = Files.walk(tempImportDir)) {
+                walk.sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
+            } catch (IOException cleanupEx) {
+                log.warn("Could not clean up temp import directory", cleanupEx);
+            }
+        }
     }
 
     private DJRecord writeLogo(DJRecord record, Path logoSourcePath) throws Exception {
