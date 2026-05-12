@@ -67,7 +67,7 @@ class PosterSnapshotTest {
         PosterSnapshot snap = PosterSnapshot.of(model);
 
         assertThrows(UnsupportedOperationException.class,
-            () -> snap.timeslots.add(new PosterSnapshot.TimeslotSnapshot("10pm", null, null, null)));
+            () -> snap.timeslots.add(new PosterSnapshot.TimeslotSnapshot("10pm", null, null, null, null)));
     }
 
     @Test

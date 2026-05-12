@@ -13,6 +13,7 @@ public class TimeslotEntry {
     private final StringProperty assignedDjId = new SimpleStringProperty();
     private final StringProperty assignedDjArtistName = new SimpleStringProperty();
     private final ObjectProperty<Path> assignedDjLogoPath = new SimpleObjectProperty<>();
+    private final StringProperty genre = new SimpleStringProperty("");
 
     private TimeslotEntry() {}
 
@@ -48,4 +49,9 @@ public class TimeslotEntry {
     public Path getAssignedDjLogoPath() { return assignedDjLogoPath.get(); }
     public void setAssignedDjLogoPath(Path value) { assignedDjLogoPath.set(value); }
     public ObjectProperty<Path> assignedDjLogoPathProperty() { return assignedDjLogoPath; }
+
+    // genre triad — row annotation, intentionally NOT cleared by clearAssignment()
+    public String getGenre() { return genre.get(); }
+    public void setGenre(String value) { genre.set(value != null ? value : ""); }
+    public StringProperty genreProperty() { return genre; }
 }

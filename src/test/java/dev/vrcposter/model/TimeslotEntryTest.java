@@ -81,4 +81,28 @@ class TimeslotEntryTest {
         assertSame(entry.assignedDjArtistNameProperty(), entry.assignedDjArtistNameProperty());
         assertSame(entry.assignedDjLogoPathProperty(), entry.assignedDjLogoPathProperty());
     }
+
+    @Test
+    void genre_defaultIsEmptyString() {
+        TimeslotEntry entry = TimeslotEntry.create("9pm");
+        assertEquals("", entry.getGenre());
+    }
+
+    @Test
+    void genre_setGetRoundTrip() {
+        TimeslotEntry entry = TimeslotEntry.create("10pm");
+        entry.setGenre("Techno");
+        assertEquals("Techno", entry.getGenre());
+        assertEquals("Techno", entry.genreProperty().get());
+    }
+
+    @Test
+    void clearAssignment_doesNotClearGenre() {
+        TimeslotEntry entry = TimeslotEntry.create("11pm");
+        entry.setAssignedDjId("dj-1");
+        entry.setGenre("House");
+        entry.clearAssignment();
+        assertNull(entry.getAssignedDjId());
+        assertEquals("House", entry.getGenre());
+    }
 }

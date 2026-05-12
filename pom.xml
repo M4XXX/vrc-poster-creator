@@ -139,13 +139,13 @@
                 <goals><goal>copy-dependencies</goal></goals>
                 <configuration>
                   <outputDirectory>${project.build.directory}/libs</outputDirectory>
-                  <excludeScope>test</excludeScope>
+                  <includeScope>runtime</includeScope>
                 </configuration>
               </execution>
             </executions>
           </plugin>
 
-          <!-- Step 2: Copy the app JAR into target/libs/ after it is built -->
+          <!-- Steps 2+3: Copy app JAR then run jpackage (single antrun block preserves execution order) -->
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-antrun-plugin</artifactId>
@@ -162,70 +162,36 @@
                   </target>
                 </configuration>
               </execution>
-            </executions>
-          </plugin>
-
-          <!-- Step 3: Run jpackage — produces VRCPosterCreator-1.0.0.exe in target/ -->
-          <plugin>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>exec-maven-plugin</artifactId>
-            <version>3.1.0</version>
-            <executions>
               <execution>
                 <id>jpackage</id>
                 <phase>package</phase>
-                <goals><goal>exec</goal></goals>
+                <goals><goal>run</goal></goals>
                 <configuration>
-                  <executable>jpackage</executable>
-                  <arguments>
-                    <!-- Input: directory of all JARs (app + deps) -->
-                    <argument>--input</argument>
-                    <argument>${project.build.directory}/libs</argument>
-                    <!-- Main JAR and entry point -->
-                    <argument>--main-jar</argument>
-                    <argument>${project.build.finalName}.jar</argument>
-                    <argument>--main-class</argument>
-                    <argument>dev.vrcposter.App</argument>
-                    <!-- App metadata -->
-                    <argument>--name</argument>
-                    <argument>VRCPosterCreator</argument>
-                    <argument>--app-version</argument>
-                    <argument>1.0.0</argument>
-                    <argument>--vendor</argument>
-                    <argument>VRCPosterCreator</argument>
-                    <!-- Output type and destination -->
-                    <argument>--type</argument>
-                    <argument>exe</argument>
-                    <argument>--dest</argument>
-                    <argument>${project.build.directory}</argument>
-                    <!-- Windows installer options -->
-                    <argument>--win-dir-chooser</argument>
-                    <argument>--win-shortcut</argument>
-                    <argument>--win-menu</argument>
-                    <argument>--win-per-user-install</argument>
-                    <!-- App icon (replace placeholder with branded ICO before release) -->
-                    <argument>--icon</argument>
-                    <argument>${project.basedir}/packaging/windows/app-icon.ico</argument>
-                    <!-- License shown in installer -->
-                    <argument>--license-file</argument>
-                    <argument>${project.basedir}/packaging/windows/license.txt</argument>
-                    <!-- jlink: stripped JRE modules -->
-                    <!-- Requires: JAVAFX_JMODS env var pointing to JavaFX 21 jmods directory -->
-                    <argument>--module-path</argument>
-                    <argument>${javafx.jmods}</argument>
-                    <argument>--add-modules</argument>
-                    <argument>java.base,java.desktop,java.logging,java.naming,java.sql,java.xml,jdk.unsupported,jdk.zipfs,javafx.base,javafx.controls,javafx.fxml,javafx.graphics,javafx.swing</argument>
-                    <!-- JVM options passed to the packaged app at runtime -->
-                    <argument>--java-options</argument>
-                    <argument>-Xmx512m</argument>
-                    <argument>--java-options</argument>
-                    <argument>--add-opens=javafx.graphics/com.sun.javafx.application=ALL-UNNAMED</argument>
-                    <!--
-                      FR41: Code signing for SmartScreen-free launch.
-                      Uncomment once a code signing certificate is procured:
-                      argument: -win-sign-identity, value: YOUR_CERT_SUBJECT_NAME
-                    -->
-                  </arguments>
+                  <target>
+                    <exec executable="${java.home}/bin/jpackage" failonerror="true">
+                      <arg value="--input"/><arg value="${project.build.directory}/libs"/>
+                      <arg value="--main-jar"/><arg value="${project.build.finalName}.jar"/>
+                      <arg value="--main-class"/><arg value="dev.vrcposter.App"/>
+                      <arg value="--name"/><arg value="VRCPosterCreator"/>
+                      <arg value="--app-version"/><arg value="1.0.0"/>
+                      <arg value="--vendor"/><arg value="VRCPosterCreator"/>
+                      <arg value="--type"/><arg value="exe"/>
+                      <arg value="--dest"/><arg value="${project.build.directory}"/>
+                      <arg value="--win-dir-chooser"/>
+                      <arg value="--win-shortcut"/>
+                      <arg value="--win-menu"/>
+                      <arg value="--win-per-user-install"/>
+                      <arg value="--icon"/><arg value="${project.basedir}/packaging/windows/app-icon.ico"/>
+                      <arg value="--license-file"/><arg value="${project.basedir}/packaging/windows/license.txt"/>
+                      <arg value="--module-path"/>
+                      <arg value="${java.home}/jmods${path.separator}${javafx.jmods}"/>
+                      <arg value="--add-modules"/>
+                      <arg value="java.base,java.desktop,java.logging,java.naming,java.sql,java.xml,jdk.unsupported,jdk.zipfs,javafx.base,javafx.controls,javafx.fxml,javafx.graphics,javafx.swing"/>
+                      <arg value="--java-options"/><arg value="-Xmx512m"/>
+                      <arg value="--java-options"/>
+                      <arg value="--add-opens=javafx.graphics/com.sun.javafx.application=ALL-UNNAMED"/>
+                    </exec>
+                  </target>
                 </configuration>
               </execution>
             </executions>

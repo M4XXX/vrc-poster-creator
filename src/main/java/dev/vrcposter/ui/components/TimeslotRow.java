@@ -13,11 +13,16 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.TextField;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.ClipboardContent;
+import javafx.scene.input.DataFormat;
+import javafx.scene.input.TransferMode;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.VBox;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,8 +35,10 @@ public class TimeslotRow extends HBox {
     private final ApplicationController controller;
     private final ObservableList<DJRecord> roster;
 
+    private final Label dragHandle;
     private final TextField timeField;
     private final ComboBox<DJRecord> djComboBox;
+    private final TextField genreField;
     private final ImageView logoView;
     private final Button clearBtn;
     private final Button removeBtn;
@@ -47,6 +54,9 @@ public class TimeslotRow extends HBox {
         setSpacing(6);
         setAlignment(Pos.CENTER_LEFT);
         setPadding(new Insets(4, 8, 4, 8));
+
+        dragHandle = new Label("⠃");
+        dragHandle.setStyle("-fx-cursor: open-hand; -fx-font-size: 14px;");
 
         timeField = new TextField(entry.getStartTime());
         timeField.setPrefWidth(55);
@@ -99,10 +109,52 @@ public class TimeslotRow extends HBox {
         removeBtn.getStyleClass().add("ghost");
         removeBtn.setOnAction(e -> controller.removeTimeslot(entry));
 
-        getChildren().addAll(timeField, djComboBox, logoView, clearBtn, removeBtn);
+        genreField = new TextField(entry.getGenre());
+        genreField.setPromptText("Genre…");
+        genreField.setPrefWidth(80);
+        genreField.setOnAction(e -> controller.setTimeslotGenre(entry, genreField.getText()));
+        genreField.focusedProperty().addListener((obs, wasFocused, isFocused) -> {
+            if (!isFocused) controller.setTimeslotGenre(entry, genreField.getText());
+        });
+        entry.genreProperty().addListener((obs, old, newVal) -> {
+            if (!genreField.getText().equals(newVal)) genreField.setText(newVal);
+        });
+
+        // DnD: drag initiated from the handle
+        dragHandle.setOnDragDetected(e -> {
+            int fromIndex = ((VBox) getParent()).getChildren().indexOf(this);
+            var db = dragHandle.startDragAndDrop(TransferMode.MOVE);
+            var cc = new ClipboardContent();
+            cc.put(DataFormat.PLAIN_TEXT, String.valueOf(fromIndex));
+            db.setContent(cc);
+            e.consume();
+        });
+
+        // DnD: this row accepts drops from other rows
+        setOnDragOver(e -> {
+            if (e.getGestureSource() != this && e.getDragboard().hasContent(DataFormat.PLAIN_TEXT)) {
+                e.acceptTransferModes(TransferMode.MOVE);
+            }
+            e.consume();
+        });
+        setOnDragDropped(e -> {
+            var db = e.getDragboard();
+            if (db.hasContent(DataFormat.PLAIN_TEXT)) {
+                int fromIndex = Integer.parseInt((String) db.getContent(DataFormat.PLAIN_TEXT));
+                int toIndex = ((VBox) getParent()).getChildren().indexOf(this);
+                if (fromIndex != toIndex) controller.swapTimeslotDjContent(fromIndex, toIndex);
+                e.setDropCompleted(true);
+            }
+            e.consume();
+        });
+
+        getChildren().addAll(dragHandle, timeField, djComboBox, genreField, logoView, clearBtn, removeBtn);
         setAccessibleRole(AccessibleRole.LIST_ITEM);
 
-        entry.assignedDjIdProperty().addListener((obs, old, newId) -> updateFillState(newId));
+        entry.assignedDjIdProperty().addListener((obs, old, newId) -> {
+            updateFillState(newId);
+            syncComboBoxValue();
+        });
 
         entry.assignedDjLogoPathProperty().addListener((obs, old, newPath) -> {
             if (newPath == null) {

@@ -16,7 +16,8 @@ public class PosterSnapshot {
         String startTime,
         String assignedDjId,
         String assignedDjArtistName,
-        Path assignedDjLogoPath
+        Path assignedDjLogoPath,
+        String genre
     ) {}
 
     public final String title;
@@ -52,7 +53,8 @@ public class PosterSnapshot {
                 te.getStartTime(),
                 te.getAssignedDjId(),
                 te.getAssignedDjArtistName(),
-                te.getAssignedDjLogoPath()))
+                te.getAssignedDjLogoPath(),
+                te.getGenre()))
             .toList();
         return new PosterSnapshot(
             model.getTitle(),

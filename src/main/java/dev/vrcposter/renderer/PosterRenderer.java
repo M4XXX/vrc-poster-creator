@@ -4,7 +4,6 @@ import dev.vrcposter.util.ImageIngester;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -119,21 +118,16 @@ public final class PosterRenderer {
         List<PosterSnapshot.TimeslotSnapshot> timeslots = snapshot.timeslots;
         if (timeslots == null || timeslots.isEmpty()) return;
 
-        // Sort earliest-first (FR24)
-        List<PosterSnapshot.TimeslotSnapshot> sorted = timeslots.stream()
-            .sorted(Comparator.comparingInt(t -> parseTimeToOrder(t.startTime())))
-            .toList();
-
         int centerZoneHeight = bottomZoneStart - topZoneEnd;
-        int rowHeight = Math.min(centerZoneHeight / sorted.size(), (int)(height * 0.12));
+        int rowHeight = Math.min(centerZoneHeight / timeslots.size(), (int)(height * 0.12));
         // Center the lineup vertically in the center zone
-        int startY = topZoneEnd + (centerZoneHeight - rowHeight * sorted.size()) / 2;
+        int startY = topZoneEnd + (centerZoneHeight - rowHeight * timeslots.size()) / 2;
 
-        int fontSize = Math.max((int)(rowHeight * 0.35), 10);
+        int fontSize = Math.max((int)(rowHeight * 0.35 / 2), 10);
         Font rowFont = new Font(FONT_NAME, Font.BOLD, fontSize);
 
-        for (int i = 0; i < sorted.size(); i++) {
-            drawTimeslotRow(g, sorted.get(i), startY + i * rowHeight, rowHeight, width, padding, rowFont);
+        for (int i = 0; i < timeslots.size(); i++) {
+            drawTimeslotRow(g, timeslots.get(i), startY + i * rowHeight, rowHeight, width, padding, rowFont);
         }
     }
 
@@ -142,21 +136,23 @@ public final class PosterRenderer {
         g.setColor(TEXT_WHITE);
         g.setFont(font);
         FontMetrics fm = g.getFontMetrics();
-        int textY = rowY + (rowHeight + fm.getAscent() - fm.getDescent()) / 2;
+        int lineHeight = rowHeight / 2;
 
-        // Start time — left-aligned (FR26)
-        String time = slot.startTime() != null ? slot.startTime() : "";
-        if (!time.isBlank()) {
-            g.drawString(time, padding, textY);
-        }
-
-        // Artist name — center-aligned (FR26)
+        // Line 1: artist name — left-aligned
         String artistName = slot.assignedDjArtistName() != null ? slot.assignedDjArtistName() : "";
         if (!artistName.isBlank()) {
-            g.drawString(artistName, (width - fm.stringWidth(artistName)) / 2, textY);
+            g.drawString(artistName, padding, rowY + fm.getAscent());
         }
 
-        // DJ logo — right-aligned (FR26)
+        // Line 2: "time – genre" — left-aligned
+        String time = slot.startTime() != null ? slot.startTime() : "";
+        String genre = slot.genre() != null ? slot.genre() : "";
+        String line2 = genre.isBlank() ? time : (time + " – " + genre);
+        if (!line2.isBlank()) {
+            g.drawString(line2, padding, rowY + lineHeight + fm.getAscent());
+        }
+
+        // DJ logo — right-aligned, vertically centered across full row height
         if (slot.assignedDjLogoPath() != null) {
             int logoSize = rowHeight - (padding / 2);
             Optional<BufferedImage> opt = ImageIngester.load(slot.assignedDjLogoPath(), logoSize, logoSize);
@@ -196,18 +192,4 @@ public final class PosterRenderer {
         }
     }
 
-    // ── Time ordering (duplicated from ApplicationController — renderer/ must not depend on it) ──
-
-    private static int parseTimeToOrder(String t) {
-        if (t == null || t.isBlank()) return Integer.MAX_VALUE;
-        String lower = t.trim().toLowerCase();
-        boolean pm = lower.endsWith("pm");
-        boolean am = lower.endsWith("am");
-        String numStr = lower.replaceAll("[^0-9]", "");
-        if (numStr.isEmpty()) return Integer.MAX_VALUE;
-        int h = Integer.parseInt(numStr);
-        if (am) return (h == 12) ? 0 : h;
-        if (pm) return (h == 12) ? 12 : h + 12;
-        return h;
-    }
 }

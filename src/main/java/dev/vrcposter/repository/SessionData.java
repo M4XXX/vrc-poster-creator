@@ -15,5 +15,6 @@ public class SessionData {
         public String startTime;
         public String assignedDjId;
         public String assignedDjArtistName;
+        public String genre;
     }
 }

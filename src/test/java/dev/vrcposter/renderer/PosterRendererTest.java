@@ -51,9 +51,7 @@ class PosterRendererTest {
     }
 
     @Test
-    void render_timeslots_outOfChronologicalOrder_noException() {
-        // Exercises the parseTimeToOrder comparator path (AC6).
-        // Timeslots deliberately added in reverse chronological order.
+    void render_timeslots_preservesInsertionOrder_noException() {
         PosterModel model = new PosterModel();
         model.getTimeslots().add(TimeslotEntry.create("2am"));
         model.getTimeslots().add(TimeslotEntry.create("12am"));
@@ -61,5 +59,16 @@ class PosterRendererTest {
         model.getTimeslots().add(TimeslotEntry.create("9pm"));
         PosterSnapshot snapshot = PosterSnapshot.of(model);
         assertDoesNotThrow(() -> PosterRenderer.render(snapshot, 540, 960));
+    }
+
+    @Test
+    void render_snapshotWithGenre_noException() {
+        PosterModel model = new PosterModel();
+        TimeslotEntry entry = TimeslotEntry.create("9pm");
+        entry.setAssignedDjArtistName("DJ Test");
+        entry.setGenre("Techno");
+        model.getTimeslots().add(entry);
+        PosterSnapshot snapshot = PosterSnapshot.of(model);
+        assertNotNull(PosterRenderer.render(snapshot, 540, 960));
     }
 }

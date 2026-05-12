@@ -22,7 +22,6 @@ import dev.vrcposter.util.AppPaths;
 import dev.vrcposter.util.DebounceUtil;
 import dev.vrcposter.util.ImageIngester;
 import javafx.application.Platform;
-import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.concurrent.Task;
 import org.slf4j.Logger;
@@ -262,6 +261,7 @@ public class ApplicationController {
             td.startTime = ts.getStartTime();
             td.assignedDjId = ts.getAssignedDjId();
             td.assignedDjArtistName = ts.getAssignedDjArtistName();
+            td.genre = ts.getGenre();
             slots.add(td);
         }
 
@@ -337,6 +337,7 @@ public class ApplicationController {
         for (SessionData.TimeslotData td : slots) {
             String time = td.startTime != null ? td.startTime : "";
             TimeslotEntry entry = TimeslotEntry.create(time);
+            entry.setGenre(td.genre != null ? td.genre : "");
             if (td.assignedDjId != null) {
                 entry.setAssignedDjId(td.assignedDjId);
                 entry.setAssignedDjArtistName(td.assignedDjArtistName);
@@ -396,21 +397,28 @@ public class ApplicationController {
 
     public void setTimeslotStartTime(TimeslotEntry entry, String time) {
         entry.setStartTime(time);
-        FXCollections.sort(posterModel.getTimeslots(),
-            (a, b) -> Integer.compare(parseTimeToOrder(a.getStartTime()), parseTimeToOrder(b.getStartTime())));
     }
 
-    private static int parseTimeToOrder(String t) {
-        if (t == null || t.isBlank()) return Integer.MAX_VALUE;
-        String lower = t.trim().toLowerCase();
-        boolean pm = lower.endsWith("pm");
-        boolean am = lower.endsWith("am");
-        String numStr = lower.replaceAll("[^0-9]", "");
-        if (numStr.isEmpty()) return Integer.MAX_VALUE;
-        int h = Integer.parseInt(numStr);
-        if (am) return (h == 12) ? 0 : h;
-        if (pm) return (h == 12) ? 12 : h + 12;
-        return h;
+    public void setTimeslotGenre(TimeslotEntry entry, String genre) {
+        entry.setGenre(genre != null ? genre : "");
+    }
+
+    public void swapTimeslotDjContent(int fromIndex, int toIndex) {
+        var slots = posterModel.getTimeslots();
+        TimeslotEntry a = slots.get(fromIndex);
+        TimeslotEntry b = slots.get(toIndex);
+        String tmpId = a.getAssignedDjId();
+        String tmpName = a.getAssignedDjArtistName();
+        Path tmpLogo = a.getAssignedDjLogoPath();
+        String tmpGenre = a.getGenre();
+        a.setAssignedDjId(b.getAssignedDjId());
+        a.setAssignedDjArtistName(b.getAssignedDjArtistName());
+        a.setAssignedDjLogoPath(b.getAssignedDjLogoPath());
+        a.setGenre(b.getGenre());
+        b.setAssignedDjId(tmpId);
+        b.setAssignedDjArtistName(tmpName);
+        b.setAssignedDjLogoPath(tmpLogo);
+        b.setGenre(tmpGenre);
     }
 
     // ── Poster export (ARCH-9, FR31–FR33) ───────────────────────────────

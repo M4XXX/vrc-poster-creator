@@ -3,29 +3,39 @@ package dev.vrcposter;
 import dev.vrcposter.model.PosterModel;
 import dev.vrcposter.model.TimeslotEntry;
 import dev.vrcposter.repository.DatabaseManager;
+import dev.vrcposter.repository.RepositoryException;
+import dev.vrcposter.repository.migration.Migration001_InitialSchema;
+import dev.vrcposter.repository.migration.MigrationRunner;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class ApplicationControllerPosterModelTest {
 
+    @TempDir
+    Path tempDir;
+
     private ApplicationController controller;
+    private DatabaseManager db;
 
     @BeforeEach
-    void setUp() {
-        // DatabaseManager with no initialize() call: connection stays null.
-        // close() is a no-op when connection == null, so shutdown() is safe.
-        DatabaseManager dbManager = new DatabaseManager(Path.of("unused-for-test.db"));
-        controller = new ApplicationController(dbManager);
+    void setUp() throws RepositoryException {
+        db = new DatabaseManager(tempDir.resolve("test.db"));
+        db.initialize();
+        new MigrationRunner(db, List.of(new Migration001_InitialSchema())).run();
+        controller = new ApplicationController(db);
     }
 
     @AfterEach
-    void tearDown() {
+    void tearDown() throws RepositoryException {
         controller.shutdown();
+        db.close();
     }
 
     @Test

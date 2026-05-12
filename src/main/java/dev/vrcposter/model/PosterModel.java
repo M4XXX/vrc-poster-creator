@@ -22,7 +22,8 @@ public class PosterModel {
     private final ObservableList<TimeslotEntry> timeslots = FXCollections.observableArrayList(
         te -> new Observable[]{
             te.startTimeProperty(), te.assignedDjIdProperty(),
-            te.assignedDjArtistNameProperty(), te.assignedDjLogoPathProperty()
+            te.assignedDjArtistNameProperty(), te.assignedDjLogoPathProperty(),
+            te.genreProperty()
         }
     );
 
