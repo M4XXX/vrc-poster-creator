@@ -123,6 +123,12 @@
           e.g.  set JAVAFX_JMODS=C:\javafx-jmods-21.0.5
         -->
         <javafx.jmods>${env.JAVAFX_JMODS}</javafx.jmods>
+        <!--
+          Installer version (numeric x.y.z only — required by the Windows installer).
+          Must increase between releases so installs upgrade in place.
+          Override with -Dapp.version=1.2.3 (CI derives it from the v* tag).
+        -->
+        <app.version>1.0.0</app.version>
       </properties>
       <build>
         <plugins>
@@ -140,6 +146,8 @@
                 <configuration>
                   <outputDirectory>${project.build.directory}/libs</outputDirectory>
                   <includeScope>runtime</includeScope>
+                  <!-- JavaFX is linked into the runtime image from jmods; the JARs would be dead weight -->
+                  <excludeGroupIds>org.openjfx</excludeGroupIds>
                 </configuration>
               </execution>
             </executions>
@@ -173,7 +181,7 @@
                       <arg value="--main-jar"/><arg value="${project.build.finalName}.jar"/>
                       <arg value="--main-class"/><arg value="dev.vrcposter.App"/>
                       <arg value="--name"/><arg value="VRCPosterCreator"/>
-                      <arg value="--app-version"/><arg value="1.0.0"/>
+                      <arg value="--app-version"/><arg value="${app.version}"/>
                       <arg value="--vendor"/><arg value="VRCPosterCreator"/>
                       <arg value="--type"/><arg value="exe"/>
                       <arg value="--dest"/><arg value="${project.build.directory}"/>

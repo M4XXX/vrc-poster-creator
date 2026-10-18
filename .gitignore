@@ -1,7 +1,8 @@
 # Maven build output
 target/
 
-# App runtime artifact (created when APPDATA env var is undefined during dev run)
+# Logback fallback dir (created when APPDATA env var is undefined during dev run)
+APPDATA_IS_UNDEFINED
 env.APPDATA_IS_UNDEFINED
 
 # Compiled class files

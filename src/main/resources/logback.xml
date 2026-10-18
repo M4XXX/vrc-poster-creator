@@ -1,8 +1,8 @@
 <configuration>
   <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-    <file>${env.APPDATA}/VRCPosterCreator/logs/app.log</file>
+    <file>${APPDATA}/VRCPosterCreator/logs/app.log</file>
     <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-      <fileNamePattern>${env.APPDATA}/VRCPosterCreator/logs/app.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+      <fileNamePattern>${APPDATA}/VRCPosterCreator/logs/app.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
       <maxFileSize>10MB</maxFileSize>
       <maxHistory>30</maxHistory>
     </rollingPolicy>
