@@ -32,13 +32,37 @@ The app stores your DJ roster locally in SQLite, auto-saves your work between se
 ## Features
 
 - **DJ Roster Management** — Store artist name, Discord/VRC names, genres, logo, and stream links in a local SQLite database
+
+  <img src="docs/screenshots/dj-roster.png" width="49%" alt="DJ Manager listing the roster with logos, Discord names, and genres"> <img src="docs/screenshots/dj-edit.png" width="49%" alt="Edit DJ dialog with artist details and logo">
+
 - **Poster Builder** — Set event title, subtitle, date, background image, club logo, and QR code
+
+  <img src="docs/screenshots/poster-event-info.png" width="70%" alt="Event info fields: title, date, subtitle, and font color">
+  <img src="docs/screenshots/poster-assets.png" width="70%" alt="Asset section with background, club logo, and QR code">
+
 - **Timeslot Scheduler** — Assign DJs to time slots; sort by start time
+
+  <img src="docs/screenshots/timeslots.png" width="70%" alt="Timeslot rows with the DJ assignment dropdown open">
+
 - **Real-Time Preview** — See the poster update live as you edit
+
+  <img src="docs/screenshots/live-preview.png" width="80%" alt="Poster preview updating after switching the font color to cyan">
+
 - **Export** — Save finished posters as JPEG or PNG
+
+  <img src="docs/screenshots/export-menu.png" width="55%" alt="File menu with JPEG and PNG export options"> <img src="docs/screenshots/exported-poster.png" width="27%" alt="Exported 1080×1920 poster">
+
 - **Session Auto-Save & Restore** — Your work is saved automatically and restored on next launch
+
+  <img src="docs/screenshots/session-restore.png" width="80%" alt="Previous session restored on launch, status bar showing Saved">
+
 - **Roster Import / Export** — Back up or share your DJ roster as a ZIP file
+
+  <img src="docs/screenshots/roster-export.png" width="60%" alt="DJ Manager confirming a roster ZIP export">
+
 - **Dark Theme** — AtlantaFX Primer Dark throughout
+
+  <img src="docs/screenshots/overview.png" width="80%" alt="Main window in the dark theme">
 
 ---
 
