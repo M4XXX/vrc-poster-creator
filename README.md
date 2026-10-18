@@ -12,10 +12,10 @@
 ## Table of Contents
 
 - [About](#about)
-- [Features](#features)
-- [Requirements](#requirements)
 - [For End Users](#for-end-users)
+- [Features](#features)
 - [For Developers](#for-developers)
+  - [Requirements](#requirements)
 - [Building the Windows Installer](#building-the-windows-installer)
 - [License](#license)
 
@@ -26,6 +26,17 @@
 VRC Poster Creator is a standalone Windows desktop application for VRChat event organizers. It lets you build professional DJ event posters — complete with lineup, timeslots, logos, and QR codes — through a guided UI, then export them as publication-ready images.
 
 The app stores your DJ roster locally in SQLite, auto-saves your work between sessions, and runs entirely offline.
+
+---
+
+## For End Users
+
+1. Go to the [Releases](https://github.com/M4XXX/vrc-poster-creator/releases) page.
+2. Download `VRCPosterCreator-<version>.exe` from the latest release.
+3. Run the installer — it will guide you through installation and create a Start Menu entry and optional Desktop shortcut.
+4. Launch **VRC Poster Creator** from the Start Menu or Desktop.
+
+> No Java installation required — the app bundles its own JRE.
 
 ---
 
@@ -66,7 +77,9 @@ The app stores your DJ roster locally in SQLite, auto-saves your work between se
 
 ---
 
-## Requirements
+## For Developers
+
+### Requirements
 
 | Requirement | Version |
 |---|---|
@@ -75,21 +88,6 @@ The app stores your DJ roster locally in SQLite, auto-saves your work between se
 | JavaFX 21.0.5 jmods | Windows x64 (installer build only) |
 | WiX Toolset | v3 (installer build only) |
 | OS | Windows 10 / 11 (64-bit) |
-
----
-
-## For End Users
-
-1. Go to the [Releases](https://github.com/M4XXX/vrc-poster-creator/releases) page.
-2. Download `VRCPosterCreator-1.0.0.exe` from the latest release.
-3. Run the installer — it will guide you through installation and create a Start Menu entry and optional Desktop shortcut.
-4. Launch **VRC Poster Creator** from the Start Menu or Desktop.
-
-> No Java installation required — the app bundles its own JRE.
-
----
-
-## For Developers
 
 ### Prerequisites
 
